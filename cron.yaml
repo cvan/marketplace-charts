@@ -1,0 +1,4 @@
+cron:
+- description: fetch daily bugs
+  url: /tasks/bugs
+  schedule: every day 23:30
