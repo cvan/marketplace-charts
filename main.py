@@ -22,6 +22,21 @@ PROJECTS = {
     }
 }
 
+# What we record in the DB.
+BZ_MODEL_COLUMNS = (
+    'product',
+    'component',
+    'id',
+    'status',
+    'resolution',
+    'target_milestone',
+    'summary',
+    'assigned_to',
+    'priority',
+    'whiteboard'
+)
+
+# What we get back from Bugzilla.
 BZ_FIELDS = (
     'id',
     'assigned_to',
@@ -31,7 +46,9 @@ BZ_FIELDS = (
     'resolution',
     'last_change_time',
     'target_milestone',
-    'whiteboard'
+    'whiteboard',
+    'product',
+    'component'
 )
 
 BZ_SEARCH_URL = ('https://api-dev.bugzilla.mozilla.org/latest/bug?'
@@ -74,10 +91,25 @@ class BugsHandler(webapp2.RequestHandler):
                 #resp = urlfetch.fetch(url, headers={'Accept': 'application/json'})
                 #content = resp.content
                 #bugs = json.loads(content)
+                bugs = []
                 content = url
                 self.response.write('<h1>For %s %s:</h1><p>%s</p>' % (group_name, url, content))
 
-                # TODO: Save objects.
+                # TODO: For reopened bugs, only insert if there is no record of the bug
+                # or if there is a record of the bug its status was not previously 'REOPENED'.
+
+                for bug in bugs:
+                    if group_name == 'opened':
+                        obj = OpenedBug
+                    elif group_name == 'closed':
+                        obj = ClosedBug
+
+                    entry = obj(project=project, time=datetime.datetime.now())
+
+                    for column in BZ_MODEL_COLUMNS:
+                        setattr(entry, 'bz_' + column, bug[column])
+
+                    entry = obj.put()
 
     def get(self):
         for k, v in PROJECTS.iteritems():
