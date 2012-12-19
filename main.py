@@ -8,7 +8,7 @@ import webapp2
 from google.appengine.api import urlfetch
 from webapp2_extras import jinja2
 
-from models.entry import Entry
+from models.bug import Bug, ClosedBug, OpenedBug
 
 PROJECTS = {
     'marketplace': {
@@ -58,9 +58,9 @@ class MainHandler(BaseHandler):
 
         # Two weeks of data.
         ctx = {'entries': reversed(
-                   list(Entry.all().filter('project =', project)
-                                   .order('-time')
-                                   .run(limit=672)))}
+                   list(Bug.all().filter('project =', project)
+                                 .order('-time')
+                                 .run(limit=672)))}
         self.render_template('homepage.html', **ctx)
 
 
