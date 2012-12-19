@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import datetime
+import json
 import re
 
 import webapp2
@@ -9,17 +10,32 @@ from webapp2_extras import jinja2
 
 from models.entry import Entry
 
-projects = {
+PROJECTS = {
     'marketplace': {
         'opened': [
-            ':marketplace creation_ts:%(date)s',
-            ':marketplace delta_ts:%(date)s status:REOPENED'
+            ':marketplace creation_ts:{date}',
+            ':marketplace delta_ts:{date} status:REOPENED'
         ],
         'closed': [
-            'FIXED :marketplace delta_ts:%(date)s'
+            'FIXED :marketplace delta_ts:{date}'
         ]
     }
 }
+
+BZ_FIELDS = (
+    'id',
+    'assigned_to',
+    'priority',
+    'summary',
+    'status',
+    'resolution',
+    'last_change_time',
+    'target_milestone',
+    'whiteboard'
+)
+
+BZ_SEARCH_URL = ('https://api-dev.bugzilla.mozilla.org/latest/bug?'
+                 'include_fields=%s&quicksearch=%%(qs)s') % ','.join(BZ_FIELDS)
 
 
 class BaseHandler(webapp2.RequestHandler):
@@ -37,7 +53,7 @@ class MainHandler(BaseHandler):
 
     def get(self):
         project = self.request.get('project', 'marketplace')
-        if project not in projects:
+        if project not in PROJECTS:
             return
 
         # Two weeks of data.
@@ -51,8 +67,17 @@ class MainHandler(BaseHandler):
 class BugsHandler(webapp2.RequestHandler):
 
     def _fetch_bugs(self, project, queries):
-        # TODO: Scrape bugzill and save objects.
-        pass
+        today = datetime.date.today().strftime('%Y-%m-%d')
+        for group_name, group_queries in queries.iteritems():
+            for query in group_queries:
+                url = (BZ_SEARCH_URL % {'qs': query}).format(date=today)
+                #resp = urlfetch.fetch(url, headers={'Accept': 'application/json'})
+                #content = resp.content
+                #bugs = json.loads(content)
+                content = url
+                self.response.write('<h1>For %s %s:</h1><p>%s</p>' % (group_name, url, content))
+
+                # TODO: Save objects.
 
     def get(self):
         for k, v in projects.iteritems():
