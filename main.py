@@ -80,7 +80,7 @@ class BugsHandler(webapp2.RequestHandler):
                 # TODO: Save objects.
 
     def get(self):
-        for k, v in projects.iteritems():
+        for k, v in PROJECTS.iteritems():
             self._fetch_bugs(k, v)
 
 
