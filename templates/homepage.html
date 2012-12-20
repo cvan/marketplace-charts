@@ -54,17 +54,21 @@
           <td>ID</td>
           <td>Summary</td>
           <td>Status</td>
-          <td>When</td>
+          <td>Created</td>
+          <td>Last Modified</td>
+          <td>For Day</td>
         </thead>
         <tbody>
-        {% for bug in opened %}
-          <tr>
-            <td>{{ bug.bz_id }}</td>
-            <td>{{ bug.bz_summary }}</td>
-            <td>{{ bug.bz_status }}</td>
-            <td>{{ bug.time }}</td>
-          </tr>
-        {% endfor %}
+          {% for bug in opened %}
+            <tr>
+              <td>{{ bug.bz_id }}</td>
+              <td>{{ bug.bz_summary }}</td>
+              <td>{{ bug.bz_status }}</td>
+              <td>{{ bug.bz_creation_ts }}</td>
+              <td>{{ bug.bz_last_change_time }}</td>
+              <td>{{ bug.time }}</td>
+            </tr>
+          {% endfor %}
         </tbody>
       </table>
     {% endif %}
@@ -76,18 +80,20 @@
           <td>Summary</td>
           <td>Status</td>
           <td>Resolution</td>
-          <td>When</td>
+          <td>Last Modified</td>
+          <td>For Day</td>
         </thead>
         <tbody>
-        {% for bug in closed %}
-          <tr>
-            <td>{{ bug.bz_id }}</td>
-            <td>{{ bug.bz_summary }}</td>
-            <td>{{ bug.bz_status }}</td>
-            <td>{{ bug.bz_resolution }}</td>
-            <td>{{ bug.time }}</td>
-          </tr>
-        {% endfor %}
+          {% for bug in closed %}
+            <tr>
+              <td>{{ bug.bz_id }}</td>
+              <td>{{ bug.bz_summary }}</td>
+              <td>{{ bug.bz_status }}</td>
+              <td>{{ bug.bz_resolution }}</td>
+              <td>{{ bug.bz_last_change_time }}</td>
+              <td>{{ bug.time }}</td>
+            </tr>
+          {% endfor %}
         </tbody>
       </table>
     {% endif %}
