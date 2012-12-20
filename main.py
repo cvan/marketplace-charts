@@ -1,8 +1,15 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
+
+import sys
+import pdb
+for attr in ('stdin', 'stdout', 'stderr'):
+    setattr(sys, attr, getattr(sys, '__%s__' % attr))
 
 import datetime
 import json
 import re
+import urllib2
 
 import webapp2
 from google.appengine.api import urlfetch
@@ -22,34 +29,29 @@ PROJECTS = {
     }
 }
 
-# What we record in the DB.
-BZ_MODEL_COLUMNS = (
+# What we get back from Bugzilla. And what we record in the DB.
+BZ_FIELDS = (
     'product',
     'component',
     'id',
-    'status',
-    'resolution',
-    'target_milestone',
-    'summary',
-    'assigned_to',
-    'priority',
-    'whiteboard'
-)
-
-# What we get back from Bugzilla.
-BZ_FIELDS = (
-    'id',
     'assigned_to',
     'priority',
     'summary',
     'status',
     'resolution',
-    'last_change_time',
+    #'last_change_time',
     'target_milestone',
     'whiteboard',
-    'product',
-    'component'
+    'creation_ts'
 )
+
+
+BZ_TRANSFORMS = {
+    'id': lambda x: int(x),
+    'assigned_to': lambda x: x.get('real_name', x)
+}
+
+
 
 BZ_SEARCH_URL = ('https://api-dev.bugzilla.mozilla.org/latest/bug?'
                  'include_fields=%s&quicksearch=%%(qs)s') % ','.join(BZ_FIELDS)
@@ -74,10 +76,14 @@ class MainHandler(BaseHandler):
             return
 
         # Two weeks of data.
-        ctx = {'entries': reversed(
-                   list(Bug.all().filter('project =', project)
-                                 .order('-time')
-                                 .run(limit=672)))}
+        ctx = {
+            'entries': reversed(list(Bug.all().filter('project =', project)
+                                        .order('-time')
+                                        .run(limit=672))),
+            # TODO: Group by day.
+            'opened': list(OpenedBug.all()),
+            'closed': list(ClosedBug.all())
+        }
         self.render_template('homepage.html', **ctx)
 
 
@@ -85,35 +91,49 @@ class BugsHandler(webapp2.RequestHandler):
 
     def _fetch_bugs(self, project, queries):
         today = datetime.date.today().strftime('%Y-%m-%d')
+        # TODO: The datetime is ahead by like a day. Figure out WTS is going on.
+        today = '2012-12-19'
+        self.response.write(today)
         for group_name, group_queries in queries.iteritems():
+
+            # Depending on the group, pick a model.
+
+            # TODO: Figure out why everything is getting saved as just a Bug.
+            if group_name == 'opened':
+                obj = OpenedBug
+            elif group_name == 'closed':
+                obj = ClosedBug
+
             for query in group_queries:
-                url = (BZ_SEARCH_URL % {'qs': query}).format(date=today)
-                #resp = urlfetch.fetch(url, headers={'Accept': 'application/json'})
-                #content = resp.content
-                #bugs = json.loads(content)
-                bugs = []
-                content = url
-                self.response.write('<h1>For %s %s:</h1><p>%s</p>' % (group_name, url, content))
+                url = BZ_SEARCH_URL % {'qs': urllib2.quote(query.format(date=today))}
+                resp = urlfetch.fetch(url, headers={'Accept': 'application/json'})
+                content = resp.content
+
+                if not content:
+                    return
+
+                bugs = json.loads(content)['bugs']
+                self.response.write('<h1>For %s %s</h1><p>%s</p>' % (group_name, url, bugs))
 
                 # TODO: For reopened bugs, only insert if there is no record of the bug
                 # or if there is a record of the bug its status was not previously 'REOPENED'.
 
                 for bug in bugs:
-                    if group_name == 'opened':
-                        obj = OpenedBug
-                    elif group_name == 'closed':
-                        obj = ClosedBug
+                    props = {'project': project, 'time': datetime.datetime.now()}
 
-                    entry = obj(project=project, time=datetime.datetime.now())
+                    for column in BZ_FIELDS:
+                        if column in bug:
+                            # Do field manipulations on a case-by-case basis.
+                            if column in BZ_TRANSFORMS:
+                                bug[column] = BZ_TRANSFORMS[column](bug[column])
+                            props['bz_' + column] = bug[column]
 
-                    for column in BZ_MODEL_COLUMNS:
-                        setattr(entry, 'bz_' + column, bug[column])
-
-                    entry = obj.put()
+                    # TODO: Do a `get_or_insert`.
+                    obj(**props).put()
 
     def get(self):
-        for k, v in PROJECTS.iteritems():
-            self._fetch_bugs(k, v)
+        for project, queries in PROJECTS.iteritems():
+            self._fetch_bugs(project, queries)
 
 
 app = webapp2.WSGIApplication([

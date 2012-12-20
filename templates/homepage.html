@@ -47,6 +47,50 @@
     </script>
   </head>
   <body>
-    <div id="chart"></div>
+    <h2>Opened ({{ opened|length }})</h2>
+    {% if opened %}
+      <table>
+        <thead>
+          <td>ID</td>
+          <td>Summary</td>
+          <td>Status</td>
+          <td>When</td>
+        </thead>
+        <tbody>
+        {% for bug in opened %}
+          <tr>
+            <td>{{ bug.bz_id }}</td>
+            <td>{{ bug.bz_summary }}</td>
+            <td>{{ bug.bz_status }}</td>
+            <td>{{ bug.time }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    <h2>Closed ({{ closed|length }})</h2>
+    {% if closed %}
+      <table>
+        <thead>
+          <td>ID</td>
+          <td>Summary</td>
+          <td>Status</td>
+          <td>Resolution</td>
+          <td>When</td>
+        </thead>
+        <tbody>
+        {% for bug in closed %}
+          <tr>
+            <td>{{ bug.bz_id }}</td>
+            <td>{{ bug.bz_summary }}</td>
+            <td>{{ bug.bz_status }}</td>
+            <td>{{ bug.bz_resolution }}</td>
+            <td>{{ bug.time }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+    <!--<div id="chart"></div>-->
   </body>
 </html>
